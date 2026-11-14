@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  PARENT
+  CHILD
+}
+
+enum Category {
+  SCHOOL
+  HOME
+  PERSONAL
+}
+
+model Family {
+  id          String   @id @default(cuid())
+  invite      String?  @unique
+  users       User[]
+  tasks       Task[]
+  messages    Message[]
+}
+
+model User {
+  id            String         @id @default(cuid())
+  familyId      String
+  family        Family         @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  name          String
+  email         String         @unique
+  password      String
+  role          Role
+  sessions      Session[]
+  comments      Comment[]
+  messages      Message[]
+  notifications Notification[]
+
+  @@unique([familyId, role])
+}
+
+model Session {
+  token     String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+
+  @@index([userId])
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  familyId    String
+  family      Family    @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  title       String
+  description String    @default("")
+  day         String
+  time        String?
+  remindAt    DateTime?
+  category    Category
+  completedAt DateTime?
+  comments    Comment[]
+  createdAt   DateTime  @default(now())
+
+  @@index([familyId, day])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  text      String
+  createdAt DateTime @default(now())
+
+  @@index([taskId, createdAt])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  familyId  String
+  family    Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  text      String
+  createdAt DateTime @default(now())
+
+  @@index([familyId, createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key       String
+  kind      String
+  text      String
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@unique([userId, key])
+  @@index([userId, createdAt])
+}
+
